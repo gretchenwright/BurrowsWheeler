@@ -7,37 +7,37 @@ from Util import GetFirstRealLine
 
 class BetterBWMatch():
 	def __init__(self, Text):
+		self.Text = Text
 		self.LastColumn = Text
 		self.Count = dict()
 		# alphabet = ['$', 'A', 'C', 'G', 'T']
 		# old way may cause problems if the input uses a different alphabet, so make more robust:
-		letters = {i for i in self.LastColumn}
-		alphabet = [i for i in letters]
-		alphabet.sort()
-		for i in alphabet: 
-			self.Count[i] = [0] * (len(Text) + 1)# check does this cause any reference issues?
-		for j in range(1, len(self.LastColumn) + 1):
-			self.Count[self.LastColumn[j - 1]][j] = self.Count[self.LastColumn[j - 1]][j - 1] + 1
-			for k in alphabet:
-				if k != self.LastColumn[j - 1]:
-					self.Count[k][j] = self.Count[k][j - 1]
-		#test:
-		# for j in range(len(self.LastColumn) + 1):
-			# s = ' '.join([str(self.Count[k][j]) for k in alphabet])
-			# print(s)
+		self.letters = {i for i in self.LastColumn}
+		self.alphabet = [i for i in self.letters]
+		self.alphabet.sort()
+		self.computeCountArray()
+
 		self.FirstOccurrence = dict()
 		freq = dict()
 		for i in self.LastColumn:
 			freq[i] = freq.get(i, 0) + 1
 		index = 0
 		self.FirstOccurrence['$'] = 0
-		for j in range(1, len(alphabet)):
-			prevLetter = alphabet[j - 1]
-			letter = alphabet[j]
+		for j in range(1, len(self.alphabet)):
+			prevLetter = self.alphabet[j - 1]
+			letter = self.alphabet[j]
 			index += freq[prevLetter]
 			self.FirstOccurrence[letter] = index
 		# print(self.FirstOccurrence)
-	
+	def computeCountArray(self):
+		for i in self.alphabet: 
+			self.Count[i] = [0] * (len(self.Text) + 1)# check does this cause any reference issues?
+		for j in range(1, len(self.LastColumn) + 1):
+			self.Count[self.LastColumn[j - 1]][j] = self.Count[self.LastColumn[j - 1]][j - 1] + 1
+			for k in self.alphabet:
+				if k != self.LastColumn[j - 1]:
+					self.Count[k][j] = self.Count[k][j - 1]
+		return(self.Count)
 	
 	def FindCount(self, Pattern):
 		top = 0
@@ -55,15 +55,17 @@ class BetterBWMatch():
 				return bottom - top + 1	 
 	 
 if __name__ == '__main__':
-	# Text = 'GGCGCCGC$TAGTCACACACGCCGTA'
-	# Patterns = 'ACC CCG CAG'.split()
-	f = open('rosalind_ba9m.txt')
-	Text = GetFirstRealLine(f).strip()
-	Patterns = f.readline().strip().split()
+	Text = 'GGCGCCGC$TAGTCACACACGCCGTA'
+	Patterns = 'ACC CCG CAG'.split()
+	# f = open('rosalind_ba9m.txt')
+	# Text = GetFirstRealLine(f).strip()
+	# Patterns = f.readline().strip().split()
 	BW = BetterBWMatch(Text)
 	counts = []
-	for Pattern in Patterns:
-		counts.append(BW.FindCount(Pattern))
+	# for Pattern in Patterns:
+		# counts.append(BW.FindCount(Pattern))
+	# g = open("out.txt", "w")
+	# g.write(' '.join([str(a) for a in counts]))
 	print(' '.join([str(a) for a in counts]))
 	
 #out.txt accepted

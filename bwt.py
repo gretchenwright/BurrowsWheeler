@@ -14,6 +14,7 @@ G gives the child nodes, NS, NE give the start and end locations of the node sub
 
 from graphviz import Digraph
 import time
+from BetterBWMatch import BetterBWMatch
 
 class BWT:
 	def __init__(self, T):
@@ -119,13 +120,38 @@ class BWT:
 			self.appendNode(newNode, splitLoc + (curIx - self.NS[newNode]), ix)
 			c = self.nodeCount - 1
 			break
-		
-					
+			
+def exportIndex(T, filename):
+	g = open(filename, 'w')
+	B = BWT(T)
+	transform, suffixArray = B.Solve()
+	M = BetterBWMatch(T)
+	C = M.computeCountArray()
+	FO = M.FirstOccurrence
+	g.write(','.join(str(x) for x in suffixArray) + '\n')
+	g.write(','.join(str(x) for x in sorted(C.keys())) + '\n')
+	for x in sorted(C.keys()):
+		g.write(','.join(str(y) for y in C[x]) + '\n')
+	g.write(','.join(str(FO[x]) for x in sorted(FO.keys())) + '\n')
+	
+def loadIndex(filename):
+	f = open(filename)
+	suffixArray = [int(x) for x in f.readline().strip().split(',')]
+	alphabet = [x for x in f.readline().strip().split(',')]
+	C = {}
+	for a in alphabet:
+		C[a] = [int(x) for x in f.readline().strip().split(',')]
+	FO = {}
+	FO_items = [int(x) for x in f.readline().strip().split(',')]
+	for i, a in enumerate(alphabet):
+		FO[a] = FO_items[i]
+	return suffixArray, C, FO
+	
 if __name__ == '__main__':
 	T = 'panamabananas$'
+	# exportIndex(T, "pb_index.txt")
+	suffixArray, C, FO = loadIndex("pb_index.txt")
 
-	B = BWT(T)
-	print(B.Solve())
 		
-	B.drawGraph()
+	# B.drawGraph()
 	
