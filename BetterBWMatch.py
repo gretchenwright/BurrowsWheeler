@@ -6,9 +6,9 @@
 from Util import GetFirstRealLine
 
 class BetterBWMatch():
-	def __init__(self, Text):
+	def __init__(self, Text, BWText):
 		self.Text = Text
-		self.LastColumn = Text
+		self.LastColumn = BWText
 		self.Count = dict()
 		# alphabet = ['$', 'A', 'C', 'G', 'T']
 		# old way may cause problems if the input uses a different alphabet, so make more robust:

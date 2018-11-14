@@ -125,7 +125,7 @@ def exportIndex(T, filename):
 	g = open(filename, 'w')
 	B = BWT(T)
 	transform, suffixArray = B.Solve()
-	M = BetterBWMatch(T)
+	M = BetterBWMatch(T, transform)
 	C = M.computeCountArray()
 	FO = M.FirstOccurrence
 	g.write(','.join(str(x) for x in suffixArray) + '\n')
@@ -147,11 +147,29 @@ def loadIndex(filename):
 		FO[a] = FO_items[i]
 	return suffixArray, C, FO
 	
+def FindMatches(suffixArray, C, FO, Pattern):
+	top = 0
+	bottom = len(suffixArray) - 1
+	while top <= bottom:
+		# print(top, bottom)
+		if len(Pattern) > 0:
+			symbol = Pattern[-1]
+			Pattern = Pattern[:-1]
+			if C[symbol][bottom + 1] - C[symbol][top] > 0:
+				top = FO[symbol] + C[symbol][top]
+				bottom = FO[symbol] + C[symbol][bottom + 1] - 1
+			else:
+				return []
+		else:
+			# return [a[1] for a in self.SA[top:bottom + 1]]
+			# return [a[1] for a in suffixArray[top - 1:bottom]]
+			return suffixArray[top:bottom + 1]
+	
 if __name__ == '__main__':
 	T = 'panamabananas$'
 	# exportIndex(T, "pb_index.txt")
 	suffixArray, C, FO = loadIndex("pb_index.txt")
-
+	print(FindMatches(suffixArray, C, FO, 'ana'))
 		
 	# B.drawGraph()
 	
