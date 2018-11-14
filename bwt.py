@@ -24,10 +24,8 @@ class BWT:
 		self.NS = dict() # node start index
 		self.NE = dict() # node end index
 		self.SS = dict() # suffix start index
-		# for ix in range(len(T)):
 		for ix in range(len(T)):
 			self.threadSuffix(ix)
-			# self.drawGraph(outFile = 'pb/pb' + str(ix) + '.gv')
 	def Solve(self):
 		S = [('', 0)]
 		transform = ''
@@ -37,7 +35,6 @@ class BWT:
 			nodeIx = node[1]
 			if self.G.get(nodeIx) is not None:
 				if self.G[nodeIx] != []:
-					# print("nodeIx = ", nodeIx, "self.G[nodeIx] = ", self.G[nodeIx])
 					children = [(self.T[self.NS[child]], child) for child in self.G[nodeIx]] 
 					children.sort(reverse=True)
 					S += children
@@ -85,7 +82,6 @@ class BWT:
 		return newNode
 	def findMatchingChild(self, node, loc):
 		for child in self.G[node]:
-			# print(loc, child, self.NS[child])
 			if self.T[loc] == self.T[self.NS[child]]: 
 				return child
 		return -1
@@ -97,7 +93,6 @@ class BWT:
 			if self.NS[node] + offset > self.NE[node]:
 				return -1
 			if self.T[self.NS[node] + offset] != self.T[ix + offset]:
-				# print(self.NS[node], offset)
 				return self.NS[node] + offset
 			offset += 1
 	def threadSuffix(self, ix):
@@ -119,45 +114,18 @@ class BWT:
 			splitLoc = self.firstMismatch(node, curIx)
 			if splitLoc == -1:
 				curIx += self.NE[node] - self.NS[node] + 1
-				# print("curIx = ", curIx)
 				continue
-				# self.appendNode(node, curIx + self.NE[node] + 1 - self.NS[node], ix)
-				# break
-			# print("Inserting node:", node, splitLoc)
 			newNode = self.splitNode(node, splitLoc)
-			# print("Appending node:", newNode, splitLoc, curIx, ix)
 			self.appendNode(newNode, splitLoc + (curIx - self.NS[newNode]), ix)
 			c = self.nodeCount - 1
-			# print(self.T[self.NS[newNode]:self.NE[newNode]+1])
-			# print(self.T[self.NS[c]:self.NE[c]+1])
 			break
 		
 					
 if __name__ == '__main__':
-	# T = 'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGCTTCTGAACTGGTTACCTGCCGTGAGTAAATTAAAATTTTATTGACTTAGGTCACTAAATACTTTAACCAATATAGGCATAGCGCACAGACAGATAAAAA$'
-	# # length = 10
-	# # T = T[:length] + '$'
-	
-	# f = open('refgenome.txt')
-	# T = f.readline().strip()
-	# length = 10
-	# for i in range(20):
-		# print("length = ", length)
-		# start_time = time.time()
-		# R = T[:length] + '$'
-		# # print(R)
-		# B = BWT(R)
-		# B.Solve()
-		# print("time = ", time.time() - start_time)
-		# length *= 2
 	T = 'panamabananas$'
 
-	# T = 'abanan$'
-	# T = 'banan$'
-	# T = 'abana$'
 	B = BWT(T)
 	print(B.Solve())
 		
-	# B.drawGraph(maxLabelLength = 5)
 	B.drawGraph()
 	
