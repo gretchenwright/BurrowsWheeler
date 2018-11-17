@@ -15,6 +15,7 @@ G gives the child nodes, NS, NE give the start and end locations of the node sub
 from graphviz import Digraph
 import time
 from BetterBWMatch import BetterBWMatch
+import re
 
 class BWT:
 	def __init__(self, T):
@@ -147,6 +148,13 @@ def loadIndex(filename):
 		FO[a] = FO_items[i]
 	return suffixArray, C, FO
 	
+def reverseComplement(read):
+	rc = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
+	resp = ''
+	for i in read[::-1]:
+		resp += rc[i]
+	return resp
+	
 def FindMatches(suffixArray, C, FO, Pattern):
 	top = 0
 	bottom = len(suffixArray) - 1
@@ -166,10 +174,41 @@ def FindMatches(suffixArray, C, FO, Pattern):
 			return suffixArray[top:bottom + 1]
 	
 if __name__ == '__main__':
-	T = 'panamabananas$'
-	# exportIndex(T, "pb_index.txt")
-	suffixArray, C, FO = loadIndex("pb_index.txt")
-	print(FindMatches(suffixArray, C, FO, 'ana'))
+	# f = open("refgenome.txt")
+	# T = f.readline().strip() + '$'
+	# exportIndex(T, "ecoli_index.txt")
+	
+	# T = 'panamabananas$'
+	# # exportIndex(T, "pb_index.txt")
+	start_time = time.time()
+	suffixArray, C, FO = loadIndex("ecoli_index.txt")
+	g = open("ecoli_matches.txt", "w")
+	with open('e_coli_1000.fa') as f:
+		for line in f:
+			line = line.strip()
+			if line[0] == '>':
+				readName = line
+			else:
+				readValue = line
+				if re.search('N', readValue):
+					continue
+				match = FindMatches(suffixArray, C, FO, readValue)
+				if not match:
+					revcomp = reverseComplement(readValue)
+					match = FindMatches(suffixArray, C, FO, revcomp)
+				if match:
+					g.write(readName + '\t')
+					result = '\t'.join(str(m) for m in match)
+					g.write(result + '\n') 
+			
+	
+	
+	
+	# print("Loaded index after", time.time() - start_time)
+	# start_time = time.time()
+	# pattern = 'AGGTGATGGTATGCGCACCTTACGTGGGATCTCGGCGAAATTCTTTGCCGCGCTGGCCCGCGCCAATATC'
+	# print(FindMatches(suffixArray, C, FO, pattern))
+	# print("Completed matching after", time.time() - start_time)
 		
 	# B.drawGraph()
 	
