@@ -30,17 +30,14 @@ class BWT:
 		for ix in range(len(T)):
 			self.threadSuffix(ix)
 			
-	def loadIndex(self, filename, SA_gap = None):
+	def loadIndex(self, filename):
 		f = open(filename)
 		self.BWT = f.readline().strip()
-		if SA_gap is None:
-			self.suffixArray = [int(x) for x in f.readline().strip().split(',')]
-		else:
-			SA = f.readline().strip().split(',')
-			self.suffixArray = {}
-			for s in SA:
-				k, v = s.split(';')
-				self.suffixArray[k] = v
+		SA = f.readline().strip().split(',')
+		self.suffixArray = {}
+		for s in SA:
+			k, v = s.split(';')
+			self.suffixArray[int(k)] = int(v)
 		alphabet = [x for x in f.readline().strip().split(',')]
 		self.C = {}
 		for a in alphabet:
@@ -49,6 +46,9 @@ class BWT:
 		FO_items = [int(x) for x in f.readline().strip().split(',')]
 		for i, a in enumerate(alphabet):
 			self.FO[a] = FO_items[i]
+		self.SA_gap = int(f.readline().strip())
+		self.C_gap = int(f.readline().strip())
+		
 			
 	def exportIndex(self, filename, SA_gap = None, C_gap = None):
 		g = open(filename, 'w')
@@ -59,17 +59,13 @@ class BWT:
 		self.SA_gap = SA_gap
 		self.C_gap = C_gap
 		g.write(self.BWT + '\n')
-		if SA_gap is None:
-			g.write(','.join(str(x) for x in self.suffixArray) + '\n')
-		else:
-			g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray) if s % SA_gap == 0) + '\n')
+		g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray) if s % SA_gap == 0) + '\n')
 		g.write(','.join(str(x) for x in sorted(self.C.keys())) + '\n')
 		for x in sorted(self.C.keys()):
-			if C_gap is None:
-				g.write(','.join(str(self.C[x][i]) for i in range(len(self.C[x]))) + '\n')
-			else:
-				g.write(','.join(str(self.C[x][i]) for i in range(len(self.C[x])) if i % C_gap == 0) + '\n')
+			g.write(','.join(str(self.C[x][i]) for i in range(len(self.C[x])) if i % C_gap == 0) + '\n')
 		g.write(','.join(str(self.FO[x]) for x in sorted(self.FO.keys())) + '\n')
+		g.write(str(SA_gap) + '\n')
+		g.write(str(C_gap) + '\n')
 	
 	def Solve(self):
 		S = [('', 0)]
@@ -167,40 +163,44 @@ class BWT:
 			c = self.nodeCount - 1
 			break
 			
+	def lastToFirst(self, index):
+		letter = self.BWT[index]
+		return self.FO[letter] + self.reconstructCount(letter, index)
+		
+	def reconstructSuffixArray(self, index):
+		count = 0
+		while self.suffixArray.get(index) is None:
+			index = self.lastToFirst(index)
+			count += 1
+		return self.suffixArray[index] + count
+			
 	def FindMatches(self, Pattern):
 		top = 0
-		C_gap = 5 # TEMP FOR TESTING, NEED TO CHANGE THIS!!!
-		bottom = len(self.suffixArray) - 1
+		bottom = len(self.BWT) - 1
 		while top <= bottom:
 			if len(Pattern) > 0:
 				symbol = Pattern[-1]
 				Pattern = Pattern[:-1]
-				C_top = reconstructCount(self.BWT, self.suffixArray, self.C, self.FO, symbol, top, C_gap)
-				C_bottom = reconstructCount(self.BWT, self.suffixArray, self.C, self.FO, symbol, bottom + 1, C_gap)
+				C_top = self.reconstructCount(symbol, top)
+				C_bottom = self.reconstructCount(symbol, bottom + 1)
 				if C_bottom - C_top > 0:
 					top = self.FO[symbol] + C_top
 					bottom = self.FO[symbol] + C_bottom - 1
-					print(top, bottom)
 				else:
 					return []
 			else:
-				return self.suffixArray[top:bottom + 1]
-			
-
+				return [self.reconstructSuffixArray(x) for x in range(top, bottom + 1)]
 	
-def reconstructCount(BWT, suffixArray, C, FO, letter, index, gap):
-	# when C is the partial count array with gap 'gap', return the number of occurrences of letter strictly before index 'index'
-	loc = index - (index % gap)
-	C_loc = int(index / gap)
-	# print(loc)
-	count = C[letter][C_loc]
-	# print(loc, letter, count)
-	while loc < index:
-		if BWT[loc] == letter:
-			# print(loc, letter, count)
-			count += 1 
-		loc += 1
-	return count
+	def reconstructCount(self, letter, index):
+		# when C is the partial count array with gap 'gap', return the number of occurrences of letter strictly before index 'index'
+		loc = index - (index % self.C_gap)
+		C_loc = int(index / self.C_gap)
+		count = self.C[letter][C_loc]
+		while loc < index:
+			if self.BWT[loc] == letter:
+				count += 1 
+			loc += 1
+		return count
 		
 	
 
@@ -223,25 +223,26 @@ if __name__ == '__main__':
 	
 	# B = BWT(T)
 	# B.buildTree()
-	# B.exportIndex("magic_index_gap.txt", C_gap = 5)
+	# B.exportIndex("magic_index_gap.txt", C_gap = 5, SA_gap = 5)
 	
 	B = BWT(T)
 	B.loadIndex("magic_index_gap.txt")
-	# print(B.BWT, B.suffixArray, B.C, B.FO)
-	# print(B.FindMatches('abra'))
+	print(B.SA_gap, B.C_gap)
+	print(B.BWT, B.suffixArray, B.C, B.FO)
+	print(B.FindMatches('abra'))
 	
-	C_recon = {}
-	C_gap = 5
-	for k in B.C.keys():
-	# for k in  ['$']:
-		C_recon[k] = []
-		for i in range(len(B.BWT)):
-			C_recon[k].append(reconstructCount(B.BWT, B.suffixArray, B.C, B.FO, k, i, C_gap))
-	f = open("C_recon.txt", "w")
-	for x in sorted(C_recon.keys()):
-	# for x in ['$']:
-		f.write(','.join(str(C_recon[x][i]) for i in range(len(C_recon[x]))) + '\n')
-	# print(BWT, suffixArray, C, FO)
+	# C_recon = {}
+	# C_gap = 5
+	# for k in B.C.keys():
+	# # for k in  ['$']:
+		# C_recon[k] = []
+		# for i in range(len(B.BWT)):
+			# C_recon[k].append(reconstructCount(B.BWT, B.suffixArray, B.C, B.FO, k, i, C_gap))
+	# f = open("C_recon.txt", "w")
+	# for x in sorted(C_recon.keys()):
+	# # for x in ['$']:
+		# f.write(','.join(str(C_recon[x][i]) for i in range(len(C_recon[x]))) + '\n')
+	# # print(BWT, suffixArray, C, FO)
 	
 	# start_time = time.time()
 	# suffixArray, C, FO = loadIndex("ecoli_index.txt")
