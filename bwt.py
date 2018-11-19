@@ -122,22 +122,49 @@ class BWT:
 			c = self.nodeCount - 1
 			break
 			
-def exportIndex(T, filename):
+def exportIndex(T, filename, gap=None):
 	g = open(filename, 'w')
 	B = BWT(T)
 	transform, suffixArray = B.Solve()
 	M = BetterBWMatch(T, transform)
 	C = M.computeCountArray()
 	FO = M.FirstOccurrence
-	g.write(','.join(str(x) for x in suffixArray) + '\n')
+	g.write(transform + '\n')
+	if gap is None:
+		g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(suffixArray)) + '\n')
+	else:
+		g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(suffixArray) if s % gap == 0) + '\n')
 	g.write(','.join(str(x) for x in sorted(C.keys())) + '\n')
 	for x in sorted(C.keys()):
-		g.write(','.join(str(y) for y in C[x]) + '\n')
+		if gap is None:
+			g.write(','.join(str(C[x][i]) for i in range(len(C[x]))) + '\n')
+		else:
+			g.write(','.join(str(C[x][i]) for i in range(len(C[x])) if i % gap == 0) + '\n')
 	g.write(','.join(str(FO[x]) for x in sorted(FO.keys())) + '\n')
+	
+def reconstructCount(BWT, suffixArray, C, FO, letter, index, gap):
+	# when C is the partial count array with gap 'gap', return the number of occurrences of letter strictly before index 'index'
+	loc = index - (index % gap)
+	C_loc = int(index / gap)
+	# print(loc)
+	count = C[letter][C_loc]
+	# print(loc, letter, count)
+	while loc < index - 1:
+		loc += 1
+		if BWT[loc] == letter:
+			# print(loc, letter, count)
+			count += 1 
+	return count
+		
 	
 def loadIndex(filename):
 	f = open(filename)
-	suffixArray = [int(x) for x in f.readline().strip().split(',')]
+	BWT = f.readline().strip()
+	SA = f.readline().strip().split(',')
+	suffixArray = {}
+	for s in SA:
+		k, v = s.split(';')
+		suffixArray[k] = v
 	alphabet = [x for x in f.readline().strip().split(',')]
 	C = {}
 	for a in alphabet:
@@ -146,7 +173,7 @@ def loadIndex(filename):
 	FO_items = [int(x) for x in f.readline().strip().split(',')]
 	for i, a in enumerate(alphabet):
 		FO[a] = FO_items[i]
-	return suffixArray, C, FO
+	return BWT, suffixArray, C, FO
 	
 def reverseComplement(read):
 	rc = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
@@ -159,7 +186,6 @@ def FindMatches(suffixArray, C, FO, Pattern):
 	top = 0
 	bottom = len(suffixArray) - 1
 	while top <= bottom:
-		# print(top, bottom)
 		if len(Pattern) > 0:
 			symbol = Pattern[-1]
 			Pattern = Pattern[:-1]
@@ -169,8 +195,6 @@ def FindMatches(suffixArray, C, FO, Pattern):
 			else:
 				return []
 		else:
-			# return [a[1] for a in self.SA[top:bottom + 1]]
-			# return [a[1] for a in suffixArray[top - 1:bottom]]
 			return suffixArray[top:bottom + 1]
 	
 if __name__ == '__main__':
@@ -178,28 +202,44 @@ if __name__ == '__main__':
 	# T = f.readline().strip() + '$'
 	# exportIndex(T, "ecoli_index.txt")
 	
-	# T = 'panamabananas$'
-	# # exportIndex(T, "pb_index.txt")
-	start_time = time.time()
-	suffixArray, C, FO = loadIndex("ecoli_index.txt")
-	g = open("ecoli_matches.txt", "w")
-	with open('e_coli_1000.fa') as f:
-		for line in f:
-			line = line.strip()
-			if line[0] == '>':
-				readName = line
-			else:
-				readValue = line
-				if re.search('N', readValue):
-					continue
-				match = FindMatches(suffixArray, C, FO, readValue)
-				if not match:
-					revcomp = reverseComplement(readValue)
-					match = FindMatches(suffixArray, C, FO, revcomp)
-				if match:
-					g.write(readName + '\t')
-					result = '\t'.join(str(m) for m in match)
-					g.write(result + '\n') 
+	T = 'abracadabra$'
+	# exportIndex(T, "magic_index_full.txt")
+	# exportIndex(T, "magic_index_gap.txt", 5)
+	BWT, suffixArray, C, FO = loadIndex("magic_index_gap.txt")
+	print(C)
+	C_recon = {}
+	gap = 5
+	for k in C.keys():
+	# for k in  ['$']:
+		C_recon[k] = []
+		for i in range(len(BWT)):
+			C_recon[k].append(reconstructCount(BWT, suffixArray, C, FO, k, i, gap))
+	f = open("C_recon.txt", "w")
+	for x in sorted(C_recon.keys()):
+	# for x in ['$']:
+		f.write(','.join(str(C_recon[x][i]) for i in range(len(C_recon[x]))) + '\n')
+	# print(BWT, suffixArray, C, FO)
+	
+	# start_time = time.time()
+	# suffixArray, C, FO = loadIndex("ecoli_index.txt")
+	# g = open("ecoli_matches.txt", "w")
+	# with open('e_coli_1000.fa') as f:
+		# for line in f:
+			# line = line.strip()
+			# if line[0] == '>':
+				# readName = line
+			# else:
+				# readValue = line
+				# if re.search('N', readValue):
+					# continue
+				# match = FindMatches(suffixArray, C, FO, readValue)
+				# if not match:
+					# revcomp = reverseComplement(readValue)
+					# match = FindMatches(suffixArray, C, FO, revcomp)
+				# if match:
+					# g.write(readName + '\t')
+					# result = '\t'.join(str(m) for m in match)
+					# g.write(result + '\n') 
 			
 	
 	
