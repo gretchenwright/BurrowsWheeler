@@ -20,6 +20,7 @@ import re
 class BWT:
 	def __init__(self, T):
 		self.T = T
+	def buildTree(self):
 		self.G = {0: []} # parent to child, int -> list
 		self.H = dict() # child to parent, int -> int
 		self.nodeCount = 1
@@ -28,6 +29,48 @@ class BWT:
 		self.SS = dict() # suffix start index
 		for ix in range(len(T)):
 			self.threadSuffix(ix)
+			
+	def loadIndex(self, filename, SA_gap = None):
+		f = open(filename)
+		self.BWT = f.readline().strip()
+		if SA_gap is None:
+			self.suffixArray = [int(x) for x in f.readline().strip().split(',')]
+		else:
+			SA = f.readline().strip().split(',')
+			self.suffixArray = {}
+			for s in SA:
+				k, v = s.split(';')
+				self.suffixArray[k] = v
+		alphabet = [x for x in f.readline().strip().split(',')]
+		self.C = {}
+		for a in alphabet:
+			self.C[a] = [int(x) for x in f.readline().strip().split(',')]
+		self.FO = {}
+		FO_items = [int(x) for x in f.readline().strip().split(',')]
+		for i, a in enumerate(alphabet):
+			self.FO[a] = FO_items[i]
+			
+	def exportIndex(self, filename, SA_gap = None, C_gap = None):
+		g = open(filename, 'w')
+		self.Solve()
+		M = BetterBWMatch(self.T, self.BWT)
+		self.C = M.computeCountArray()
+		self.FO = M.FirstOccurrence
+		self.SA_gap = SA_gap
+		self.C_gap = C_gap
+		g.write(self.BWT + '\n')
+		if SA_gap is None:
+			g.write(','.join(str(x) for x in self.suffixArray) + '\n')
+		else:
+			g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray) if s % SA_gap == 0) + '\n')
+		g.write(','.join(str(x) for x in sorted(self.C.keys())) + '\n')
+		for x in sorted(self.C.keys()):
+			if C_gap is None:
+				g.write(','.join(str(self.C[x][i]) for i in range(len(self.C[x]))) + '\n')
+			else:
+				g.write(','.join(str(self.C[x][i]) for i in range(len(self.C[x])) if i % C_gap == 0) + '\n')
+		g.write(','.join(str(self.FO[x]) for x in sorted(self.FO.keys())) + '\n')
+	
 	def Solve(self):
 		S = [('', 0)]
 		transform = ''
@@ -43,7 +86,9 @@ class BWT:
 			else:
 				transform += self.T[self.SS[nodeIx] - 1]
 				suffixArray.append(self.SS[nodeIx])
-		return transform, suffixArray
+		self.BWT =  transform 
+		self.suffixArray = suffixArray
+		
 	def drawGraph(self, maxLabelLength = None, outFile = None):
 		D = Digraph()
 		self.NS[0] = 0
@@ -122,25 +167,26 @@ class BWT:
 			c = self.nodeCount - 1
 			break
 			
-def exportIndex(T, filename, gap=None):
-	g = open(filename, 'w')
-	B = BWT(T)
-	transform, suffixArray = B.Solve()
-	M = BetterBWMatch(T, transform)
-	C = M.computeCountArray()
-	FO = M.FirstOccurrence
-	g.write(transform + '\n')
-	if gap is None:
-		g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(suffixArray)) + '\n')
-	else:
-		g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(suffixArray) if s % gap == 0) + '\n')
-	g.write(','.join(str(x) for x in sorted(C.keys())) + '\n')
-	for x in sorted(C.keys()):
-		if gap is None:
-			g.write(','.join(str(C[x][i]) for i in range(len(C[x]))) + '\n')
-		else:
-			g.write(','.join(str(C[x][i]) for i in range(len(C[x])) if i % gap == 0) + '\n')
-	g.write(','.join(str(FO[x]) for x in sorted(FO.keys())) + '\n')
+	def FindMatches(self, Pattern):
+		top = 0
+		C_gap = 5 # TEMP FOR TESTING, NEED TO CHANGE THIS!!!
+		bottom = len(self.suffixArray) - 1
+		while top <= bottom:
+			if len(Pattern) > 0:
+				symbol = Pattern[-1]
+				Pattern = Pattern[:-1]
+				C_top = reconstructCount(self.BWT, self.suffixArray, self.C, self.FO, symbol, top, C_gap)
+				C_bottom = reconstructCount(self.BWT, self.suffixArray, self.C, self.FO, symbol, bottom + 1, C_gap)
+				if C_bottom - C_top > 0:
+					top = self.FO[symbol] + C_top
+					bottom = self.FO[symbol] + C_bottom - 1
+					print(top, bottom)
+				else:
+					return []
+			else:
+				return self.suffixArray[top:bottom + 1]
+			
+
 	
 def reconstructCount(BWT, suffixArray, C, FO, letter, index, gap):
 	# when C is the partial count array with gap 'gap', return the number of occurrences of letter strictly before index 'index'
@@ -149,31 +195,15 @@ def reconstructCount(BWT, suffixArray, C, FO, letter, index, gap):
 	# print(loc)
 	count = C[letter][C_loc]
 	# print(loc, letter, count)
-	while loc < index - 1:
-		loc += 1
+	while loc < index:
 		if BWT[loc] == letter:
 			# print(loc, letter, count)
 			count += 1 
+		loc += 1
 	return count
 		
 	
-def loadIndex(filename):
-	f = open(filename)
-	BWT = f.readline().strip()
-	SA = f.readline().strip().split(',')
-	suffixArray = {}
-	for s in SA:
-		k, v = s.split(';')
-		suffixArray[k] = v
-	alphabet = [x for x in f.readline().strip().split(',')]
-	C = {}
-	for a in alphabet:
-		C[a] = [int(x) for x in f.readline().strip().split(',')]
-	FO = {}
-	FO_items = [int(x) for x in f.readline().strip().split(',')]
-	for i, a in enumerate(alphabet):
-		FO[a] = FO_items[i]
-	return BWT, suffixArray, C, FO
+
 	
 def reverseComplement(read):
 	rc = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
@@ -182,20 +212,7 @@ def reverseComplement(read):
 		resp += rc[i]
 	return resp
 	
-def FindMatches(suffixArray, C, FO, Pattern):
-	top = 0
-	bottom = len(suffixArray) - 1
-	while top <= bottom:
-		if len(Pattern) > 0:
-			symbol = Pattern[-1]
-			Pattern = Pattern[:-1]
-			if C[symbol][bottom + 1] - C[symbol][top] > 0:
-				top = FO[symbol] + C[symbol][top]
-				bottom = FO[symbol] + C[symbol][bottom + 1] - 1
-			else:
-				return []
-		else:
-			return suffixArray[top:bottom + 1]
+
 	
 if __name__ == '__main__':
 	# f = open("refgenome.txt")
@@ -203,17 +220,23 @@ if __name__ == '__main__':
 	# exportIndex(T, "ecoli_index.txt")
 	
 	T = 'abracadabra$'
-	# exportIndex(T, "magic_index_full.txt")
-	# exportIndex(T, "magic_index_gap.txt", 5)
-	BWT, suffixArray, C, FO = loadIndex("magic_index_gap.txt")
-	print(C)
+	
+	# B = BWT(T)
+	# B.buildTree()
+	# B.exportIndex("magic_index_gap.txt", C_gap = 5)
+	
+	B = BWT(T)
+	B.loadIndex("magic_index_gap.txt")
+	# print(B.BWT, B.suffixArray, B.C, B.FO)
+	# print(B.FindMatches('abra'))
+	
 	C_recon = {}
-	gap = 5
-	for k in C.keys():
+	C_gap = 5
+	for k in B.C.keys():
 	# for k in  ['$']:
 		C_recon[k] = []
-		for i in range(len(BWT)):
-			C_recon[k].append(reconstructCount(BWT, suffixArray, C, FO, k, i, gap))
+		for i in range(len(B.BWT)):
+			C_recon[k].append(reconstructCount(B.BWT, B.suffixArray, B.C, B.FO, k, i, C_gap))
 	f = open("C_recon.txt", "w")
 	for x in sorted(C_recon.keys()):
 	# for x in ['$']:
