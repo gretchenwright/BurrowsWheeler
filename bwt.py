@@ -215,21 +215,25 @@ def reverseComplement(read):
 
 	
 if __name__ == '__main__':
+	# start_time = time.time()
 	# f = open("refgenome.txt")
 	# T = f.readline().strip() + '$'
-	# exportIndex(T, "ecoli_index.txt")
+	# B = BWT(T)
+	# B.buildTree()
+	# B.exportIndex("ecoli_index.txt", C_gap = 5, SA_gap = 5)
+	# print("Exported index in", time.time() - start_time)
 	
-	T = 'abracadabra$'
+	# T = 'abracadabra$'
 	
 	# B = BWT(T)
 	# B.buildTree()
 	# B.exportIndex("magic_index_gap.txt", C_gap = 5, SA_gap = 5)
 	
-	B = BWT(T)
-	B.loadIndex("magic_index_gap.txt")
-	print(B.SA_gap, B.C_gap)
-	print(B.BWT, B.suffixArray, B.C, B.FO)
-	print(B.FindMatches('abra'))
+	# B = BWT(T)
+	# B.loadIndex("magic_index_gap.txt")
+	# print(B.SA_gap, B.C_gap)
+	# print(B.BWT, B.suffixArray, B.C, B.FO)
+	# print(B.FindMatches('abra'))
 	
 	# C_recon = {}
 	# C_gap = 5
@@ -244,26 +248,34 @@ if __name__ == '__main__':
 		# f.write(','.join(str(C_recon[x][i]) for i in range(len(C_recon[x]))) + '\n')
 	# # print(BWT, suffixArray, C, FO)
 	
-	# start_time = time.time()
-	# suffixArray, C, FO = loadIndex("ecoli_index.txt")
-	# g = open("ecoli_matches.txt", "w")
-	# with open('e_coli_1000.fa') as f:
-		# for line in f:
-			# line = line.strip()
-			# if line[0] == '>':
-				# readName = line
-			# else:
-				# readValue = line
-				# if re.search('N', readValue):
-					# continue
-				# match = FindMatches(suffixArray, C, FO, readValue)
-				# if not match:
-					# revcomp = reverseComplement(readValue)
-					# match = FindMatches(suffixArray, C, FO, revcomp)
-				# if match:
-					# g.write(readName + '\t')
-					# result = '\t'.join(str(m) for m in match)
-					# g.write(result + '\n') 
+	start_time = time.time()
+	T = 'dummy' # remove need for this later
+	B = BWT(T)
+	B.loadIndex("ecoli_index.txt")
+	print("Loaded index in", time.time() - start_time)
+		
+		
+	start_time = time.time()
+	g = open("ecoli_matches.txt", "w")
+	with open('e_coli_1000.fa') as f:
+		for line in f:
+			line = line.strip()
+			if line[0] == '>':
+				readName = line
+			else:
+				readValue = line
+				if re.search('N', readValue):
+					continue
+				match = B.FindMatches(readValue)
+				if not match:
+					revcomp = reverseComplement(readValue)
+					match = B.FindMatches(revcomp)
+				if match:
+					g.write(readName + '\t')
+					result = '\t'.join(str(m) for m in match)
+					g.write(result + '\n') 
+	print("Complete read matching in", time.time() - start_time)
+
 			
 	
 	
