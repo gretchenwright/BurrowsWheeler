@@ -4,12 +4,11 @@ Construct BWT from suffix tree
 Suffix tree:all nodes are labeled with the start and end locations in T corresponding to their text string
 Leaf nodes are additionally labeled with the index of where the suffix ending there originated in T
 Then to find the BWT, we do a DFS where we always start by exploring the child node with the earlier character in the alphabet. And when we get to a leaf, we append T[i - 1] to the growing BWT.
-GAME PLAN: 2 implementations
 
-1. index everything by integers: separate dictionary for each piece of data
+Data structures:
+index everything by integers: separate dictionary for each piece of data
 G gives the child nodes, NS, NE give the start and end locations of the node substrings, SS gives the suffix starting indices
 
-2. Node is a class with attributes for: child nodes (a list), node substring start and end; suffix start
 '''
 
 from graphviz import Digraph
