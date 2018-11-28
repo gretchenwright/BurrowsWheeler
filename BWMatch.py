@@ -13,21 +13,12 @@ G gives the child nodes, NS, NE give the start and end locations of the node sub
 
 from graphviz import Digraph
 import time
-from BetterBWMatch import BetterBWMatch
 import re
 
-class BWT:
+class BWMatch:
 	def __init__(self, T):
 		self.T = T
-	def buildTree(self):
-		self.G = {0: []} # parent to child, int -> list
-		self.H = dict() # child to parent, int -> int
-		self.nodeCount = 1
-		self.NS = dict() # node start index
-		self.NE = dict() # node end index
-		self.SS = dict() # suffix start index
-		for ix in range(len(T)):
-			self.threadSuffix(ix)
+
 			
 	def loadIndex(self, filename):
 		f = open(filename)
@@ -49,118 +40,7 @@ class BWT:
 		self.C_gap = int(f.readline().strip())
 		
 			
-	def exportIndex(self, filename, SA_gap = None, C_gap = None):
-		g = open(filename, 'w')
-		self.Solve()
-		M = BetterBWMatch(self.T, self.BWT)
-		self.C = M.computeCountArray()
-		self.FO = M.FirstOccurrence
-		self.SA_gap = SA_gap
-		self.C_gap = C_gap
-		g.write(self.BWT + '\n')
-		g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray) if s % SA_gap == 0) + '\n')
-		g.write(','.join(str(x) for x in sorted(self.C.keys())) + '\n')
-		for x in sorted(self.C.keys()):
-			g.write(','.join(str(self.C[x][i]) for i in range(len(self.C[x])) if i % C_gap == 0) + '\n')
-		g.write(','.join(str(self.FO[x]) for x in sorted(self.FO.keys())) + '\n')
-		g.write(str(SA_gap) + '\n')
-		g.write(str(C_gap) + '\n')
-	
-	def Solve(self):
-		S = [('', 0)]
-		transform = ''
-		suffixArray = []
-		while S:
-			node = S.pop()
-			nodeIx = node[1]
-			if self.G.get(nodeIx) is not None:
-				if self.G[nodeIx] != []:
-					children = [(self.T[self.NS[child]], child) for child in self.G[nodeIx]] 
-					children.sort(reverse=True)
-					S += children
-			else:
-				transform += self.T[self.SS[nodeIx] - 1]
-				suffixArray.append(self.SS[nodeIx])
-		self.BWT =  transform 
-		self.suffixArray = suffixArray
-		
-	def drawGraph(self, maxLabelLength = None, outFile = None):
-		D = Digraph()
-		self.NS[0] = 0
-		self.NE[0] = -1
-		for i in range(self.nodeCount):
-			label = T[self.NS[i]:self.NE[i] + 1]
-			if maxLabelLength:
-				label = label[:maxLabelLength]
-			D.node(str(i), label)
-		for tail in self.G:
-			for head in self.G[tail]:
-				D.edge(str(tail), str(head))
-		D.render(outFile, view = True)
-		
-	def report(self):
-		print(self.G, self.H, self.NS, self.NE, self.SS)
-	def appendNode(self, parent, nodeStringStart, suffixStart):
-		newNode = self.nodeCount
-		self.G[parent] = self.G.get(parent, []) + [newNode]
-		self.H[newNode] = parent
-		self.NS[newNode] = nodeStringStart
-		self.NE[newNode] = len(self.T) - 1
-		self.SS[newNode] = suffixStart
-		self.nodeCount += 1
-	def splitNode(self, node, index):
-		# introduce a new node whose parent is the original parent of node, make it the new parent of node
-		newNode = self.nodeCount
-		parent = self.H[node]
-		self.G[newNode] = [node]
-		self.G[parent].remove(node)
-		self.G[parent] = self.G.get(parent, []) + [newNode]
-		self.H[newNode] = parent
-		self.H[node] = newNode
-		self.NS[newNode] = self.NS[node]
-		self.NE[newNode] = index - 1
-		self.NS[node] = index
-		self.nodeCount += 1
-		return newNode
-	def findMatchingChild(self, node, loc):
-		for child in self.G[node]:
-			if self.T[loc] == self.T[self.NS[child]]: 
-				return child
-		return -1
-	def firstMismatch(self, node, ix): 
-		offset = 1
-		while True:
-			if ix + offset >= len(self.T):
-				return self.NS[node] + offset
-			if self.NS[node] + offset > self.NE[node]:
-				return -1
-			if self.T[self.NS[node] + offset] != self.T[ix + offset]:
-				return self.NS[node] + offset
-			offset += 1
-	def threadSuffix(self, ix):
-		'''
-		look for a node that matches the start of the current substring
-		if none found, create a new node and set its string to the current substring and SS to the initial index
-		if one is found, look for a mismatch within the string
-		if a mismatch is found, split the target node and append the remainder of the substring
-		if no mismatch, advance curIx by the length of the node string and iterate
-		'''
-		node = 0
-		curIx = ix
-		while True:
-			nextNode = self.findMatchingChild(node, curIx)
-			if nextNode == -1:
-				self.appendNode(node, curIx, ix)
-				break
-			node = nextNode
-			splitLoc = self.firstMismatch(node, curIx)
-			if splitLoc == -1:
-				curIx += self.NE[node] - self.NS[node] + 1
-				continue
-			newNode = self.splitNode(node, splitLoc)
-			self.appendNode(newNode, splitLoc + (curIx - self.NS[newNode]), ix)
-			c = self.nodeCount - 1
-			break
+
 			
 	def lastToFirst(self, index):
 		letter = self.BWT[index]
@@ -247,33 +127,33 @@ if __name__ == '__main__':
 		# f.write(','.join(str(C_recon[x][i]) for i in range(len(C_recon[x]))) + '\n')
 	# # print(BWT, suffixArray, C, FO)
 	
-	start_time = time.time()
-	T = 'dummy' # remove need for this later
-	B = BWT(T)
-	B.loadIndex("ecoli_index.txt")
-	print("Loaded index in", time.time() - start_time)
+	# start_time = time.time()
+	# T = 'dummy' # remove need for this later
+	# B = BWT(T)
+	# B.loadIndex("ecoli_index.txt")
+	# print("Loaded index in", time.time() - start_time)
 		
 		
-	start_time = time.time()
-	g = open("ecoli_matches.txt", "w")
-	with open('e_coli_1000.fa') as f:
-		for line in f:
-			line = line.strip()
-			if line[0] == '>':
-				readName = line
-			else:
-				readValue = line
-				if re.search('N', readValue):
-					continue
-				match = B.FindMatches(readValue)
-				if not match:
-					revcomp = reverseComplement(readValue)
-					match = B.FindMatches(revcomp)
-				if match:
-					g.write(readName + '\t')
-					result = '\t'.join(str(m) for m in match)
-					g.write(result + '\n') 
-	print("Complete read matching in", time.time() - start_time)
+	# start_time = time.time()
+	# g = open("ecoli_matches.txt", "w")
+	# with open('e_coli_1000.fa') as f:
+		# for line in f:
+			# line = line.strip()
+			# if line[0] == '>':
+				# readName = line
+			# else:
+				# readValue = line
+				# if re.search('N', readValue):
+					# continue
+				# match = B.FindMatches(readValue)
+				# if not match:
+					# revcomp = reverseComplement(readValue)
+					# match = B.FindMatches(revcomp)
+				# if match:
+					# g.write(readName + '\t')
+					# result = '\t'.join(str(m) for m in match)
+					# g.write(result + '\n') 
+	# print("Complete read matching in", time.time() - start_time)
 
 			
 	
@@ -286,4 +166,12 @@ if __name__ == '__main__':
 	# print("Completed matching after", time.time() - start_time)
 		
 	# B.drawGraph()
+	
+	T = 'dummy' 
+	Patterns = 'ACC CCG CAG'.split()
+
+	B = BWMatch(T)
+	B.loadIndex("test_index.txt")
+	for P in Patterns:
+		print(B.FindMatches(P))
 	
