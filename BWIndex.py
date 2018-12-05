@@ -1,9 +1,10 @@
-
+from graphviz import Digraph
+import sys, argparse
 
 class BWIndex():
 	# def __init__(self, Text, BWText):
 	# def __init__(self, Text, genomeFile = None, indexFile = None, SA_gap = None, C_gap = None):
-	def __init__(self, Text):
+	def __init__(self, Text = None, genomefile = None):
 		self.Text = Text
 		self.buildTree()
 		self.Solve()
@@ -85,7 +86,7 @@ class BWIndex():
 		self.NS[0] = 0
 		self.NE[0] = -1
 		for i in range(self.nodeCount):
-			label = T[self.NS[i]:self.NE[i] + 1]
+			label = self.Text[self.NS[i]:self.NE[i] + 1]
 			if maxLabelLength:
 				label = label[:maxLabelLength]
 			D.node(str(i), label)
@@ -181,22 +182,35 @@ class BWIndex():
 					return 0
 			else:
 				return bottom - top + 1	 
+				
+	def loadGenomeFromFile(self, genomefile):
+		self.Text = []
+		with open(genomefile) as f:
+			for line in f:
+				self.Text.append(line.strip())
 	 
 if __name__ == '__main__':
-	Text = 'GGCGCCGCTAGTCACACACGCCGTA$'
-	Patterns = 'ACC CCG CAG'.split()
-	BWI = BWIndex(Text)
+	# Text = 'GGCGCCGCTAGTCACACACGCCGTA$'
+	# Patterns = 'ACC CCG CAG'.split()
+	# BWI = BWIndex(Text)
+	# BWI.report()
+	# BWI.drawGraph()
+	# BWI.exportIndex("test_index.txt", SA_gap = 5, C_gap = 5)
+
+
+
+	parser=argparse.ArgumentParser()
+
+	parser.add_argument('--genomefile', help='File containing text of genome all on one line')
+	parser.add_argument('--genome', help='Genome in string form')
+	parser.add_argument('--countgap', help='gap between elements of count array')
+	parser.add_argument('--suffixgap', help='gap between elements of suffix array')
+	parser.add_argument('--indexfile', help='File to write the index to')
+
+	args=parser.parse_args()
+
+	print(args)
+	BWI = BWIndex(args.genome)
 	BWI.report()
-	BWI.exportIndex("test_index.txt", SA_gap = 5, C_gap = 5)
-	# f = open('rosalind_ba9m.txt')
-	# Text = GetFirstRealLine(f).strip()
-	# Patterns = f.readline().strip().split()
-	# BW = BetterBWMatch(Text)
-	# counts = []
-	# for Pattern in Patterns:
-		# counts.append(BW.FindCount(Pattern))
-	# g = open("out.txt", "w")
-	# g.write(' '.join([str(a) for a in counts]))
-	# print(' '.join([str(a) for a in counts]))
+	BWI.exportIndex(args.indexfile, C_gap = int(args.countgap), SA_gap = int(args.suffixgap))
 	
-#out.txt accepted
