@@ -1,19 +1,22 @@
 from graphviz import Digraph
 import sys, argparse
 
+
 class BWIndex():
-	# def __init__(self, Text, BWText):
-	# def __init__(self, Text, genomeFile = None, indexFile = None, SA_gap = None, C_gap = None):
-	def __init__(self, Text = None, genomefile = None):
-		self.Text = Text
+	def __init__(self, genome=None, genomefile=None):
+		if genome is not None:
+			self.Text = genome
+		elif genomefile is not None:
+			self.loadGenomeFromFile(genomefile)
+		else:
+			print("You must supply a genome file or a genome string.")
+			sys.exit()
+		if self.Text[-1] != '$':
+			print("Genome must be terminated by $")
+			sys.exit()
 		self.buildTree()
 		self.Solve()
-		# change name of self.LastColumn to self.BWT as populated by self.Solve()
-		# change name of self.LastColumn to self.transform as populated by self.Solve()
-		# self.LastColumn = BWText
 		self.Count = dict()
-		# alphabet = ['$', 'A', 'C', 'G', 'T']
-		# old way may cause problems if the input uses a different alphabet, so make more robust:
 		self.letters = {i for i in self.BWT}
 		self.alphabet = [i for i in self.letters]
 		self.alphabet.sort()
@@ -30,22 +33,20 @@ class BWIndex():
 			letter = self.alphabet[j]
 			index += freq[prevLetter]
 			self.FirstOccurrence[letter] = index
-		# print(self.FirstOccurrence)
+
 	def buildTree(self):
-		self.G = {0: []} # parent to child, int -> list
-		self.H = dict() # child to parent, int -> int
+		self.G = {0: []}  # parent to child, int -> list
+		self.H = dict()  # child to parent, int -> int
 		self.nodeCount = 1
-		self.NS = dict() # node start index
-		self.NE = dict() # node end index
-		self.SS = dict() # suffix start index
+		self.NS = dict()  # node start index
+		self.NE = dict()  # node end index
+		self.SS = dict()  # suffix start index
 		for ix in range(len(self.Text)):
+			# print(ix)
 			self.threadSuffix(ix)
-	def exportIndex(self, filename, SA_gap = None, C_gap = None):
+
+	def exportIndex(self, filename, SA_gap=None, C_gap=None):
 		g = open(filename, 'w')
-		# self.Solve()
-		# M = BetterBWMatch(self.Text, self.BWT)
-		# self.C = M.computeCountArray()
-		# self.FO = M.FirstOccurrence
 		self.SA_gap = SA_gap
 		self.C_gap = C_gap
 		g.write(self.BWT + '\n')
@@ -62,7 +63,7 @@ class BWIndex():
 		g.write(','.join(str(self.FirstOccurrence[x]) for x in sorted(self.FirstOccurrence.keys())) + '\n')
 		g.write(str(SA_gap) + '\n')
 		g.write(str(C_gap) + '\n')
-	
+
 	def Solve(self):
 		S = [('', 0)]
 		transform = ''
@@ -72,16 +73,16 @@ class BWIndex():
 			nodeIx = node[1]
 			if self.G.get(nodeIx) is not None:
 				if self.G[nodeIx] != []:
-					children = [(self.Text[self.NS[child]], child) for child in self.G[nodeIx]] 
+					children = [(self.Text[self.NS[child]], child) for child in self.G[nodeIx]]
 					children.sort(reverse=True)
 					S += children
 			else:
 				transform += self.Text[self.SS[nodeIx] - 1]
 				suffixArray.append(self.SS[nodeIx])
-		self.BWT =  transform 
+		self.BWT = transform
 		self.suffixArray = suffixArray
-		
-	def drawGraph(self, maxLabelLength = None, outFile = None):
+
+	def drawGraph(self, maxLabelLength=None, outFile=None):
 		D = Digraph()
 		self.NS[0] = 0
 		self.NE[0] = -1
@@ -93,10 +94,11 @@ class BWIndex():
 		for tail in self.G:
 			for head in self.G[tail]:
 				D.edge(str(tail), str(head))
-		D.render(outFile, view = True)
-		
+		D.render(outFile, view=True)
+
 	def report(self):
 		print(self.G, self.H, self.NS, self.NE, self.SS, self.BWT, self.suffixArray, self.FirstOccurrence, self.Count)
+
 	def appendNode(self, parent, nodeStringStart, suffixStart):
 		newNode = self.nodeCount
 		self.G[parent] = self.G.get(parent, []) + [newNode]
@@ -105,6 +107,7 @@ class BWIndex():
 		self.NE[newNode] = len(self.Text) - 1
 		self.SS[newNode] = suffixStart
 		self.nodeCount += 1
+
 	def splitNode(self, node, index):
 		# introduce a new node whose parent is the original parent of node, make it the new parent of node
 		newNode = self.nodeCount
@@ -119,12 +122,14 @@ class BWIndex():
 		self.NS[node] = index
 		self.nodeCount += 1
 		return newNode
+
 	def findMatchingChild(self, node, loc):
 		for child in self.G[node]:
-			if self.Text[loc] == self.Text[self.NS[child]]: 
+			if self.Text[loc] == self.Text[self.NS[child]]:
 				return child
 		return -1
-	def firstMismatch(self, node, ix): 
+
+	def firstMismatch(self, node, ix):
 		offset = 1
 		while True:
 			if ix + offset >= len(self.Text):
@@ -134,6 +139,7 @@ class BWIndex():
 			if self.Text[self.NS[node] + offset] != self.Text[ix + offset]:
 				return self.NS[node] + offset
 			offset += 1
+
 	def threadSuffix(self, ix):
 		'''
 		look for a node that matches the start of the current substring
@@ -158,16 +164,17 @@ class BWIndex():
 			self.appendNode(newNode, splitLoc + (curIx - self.NS[newNode]), ix)
 			c = self.nodeCount - 1
 			break
+
 	def computeCountArray(self):
-		for i in self.alphabet: 
-			self.Count[i] = [0] * (len(self.Text) + 1)# check does this cause any reference issues?
+		for i in self.alphabet:
+			self.Count[i] = [0] * (len(self.Text) + 1)  # check does this cause any reference issues?
 		for j in range(1, len(self.BWT) + 1):
 			self.Count[self.BWT[j - 1]][j] = self.Count[self.BWT[j - 1]][j - 1] + 1
 			for k in self.alphabet:
 				if k != self.BWT[j - 1]:
 					self.Count[k][j] = self.Count[k][j - 1]
-		return(self.Count)
-	
+		return (self.Count)
+
 	def FindCount(self, Pattern):
 		top = 0
 		bottom = len(self.BWT) - 1
@@ -181,36 +188,52 @@ class BWIndex():
 				else:
 					return 0
 			else:
-				return bottom - top + 1	 
-				
+				return bottom - top + 1
+
 	def loadGenomeFromFile(self, genomefile):
-		self.Text = []
+		lines = []
 		with open(genomefile) as f:
 			for line in f:
-				self.Text.append(line.strip())
-	 
+				if line != '':
+					if line[0] != '>':
+						lines.append(line.strip())
+		self.Text = ''.join(lines)
+		if self.Text[-1] != '$':
+			self.Text = self.Text + '$'
+
+
 if __name__ == '__main__':
 	# Text = 'GGCGCCGCTAGTCACACACGCCGTA$'
-	# Patterns = 'ACC CCG CAG'.split()
+	# Text = 'GGCGCCGCTAGTCACACACGCCGTA'
 	# BWI = BWIndex(Text)
+	# BWI = BWIndex()
+	# genomefile = 'genome.txt'
+	# genomefile = 'refgenome.txt'
+	# BWI = BWIndex(genomefile=genomefile)
 	# BWI.report()
 	# BWI.drawGraph()
-	# BWI.exportIndex("test_index.txt", SA_gap = 5, C_gap = 5)
+	# BWI.exportIndex("e_coli_index.txt", SA_gap=5, C_gap=5)
+	# BWI.exportIndex("test_index_new.txt", SA_gap=5, C_gap=5)
 
+	# start_time = time.time()
+	# f = open("refgenome.txt")
+	# T = f.readline().strip() + '$'
+	# B = BWT(T)
+	# B.buildTree()
+	# B.exportIndex("ecoli_index.txt", C_gap = 5, SA_gap = 5)
+	# print("Exported index in", time.time() - start_time)
 
+	parser = argparse.ArgumentParser()
+	genome_source = parser.add_mutually_exclusive_group()
+	genome_source.add_argument('--genomefile', help='File containing text of genome all on one line')
+	genome_source.add_argument('--genome', help='Genome in string form, terminated by $')
+	parser.add_argument('--countgap', help='gap between elements of count array', type=int)
+	parser.add_argument('--suffixgap', help='gap between elements of suffix array', type=int)
+	parser.add_argument('indexfile', help='File to write the index to')
 
-	parser=argparse.ArgumentParser()
-
-	parser.add_argument('--genomefile', help='File containing text of genome all on one line')
-	parser.add_argument('--genome', help='Genome in string form')
-	parser.add_argument('--countgap', help='gap between elements of count array')
-	parser.add_argument('--suffixgap', help='gap between elements of suffix array')
-	parser.add_argument('--indexfile', help='File to write the index to')
-
-	args=parser.parse_args()
-
-	print(args)
-	BWI = BWIndex(args.genome)
-	BWI.report()
-	BWI.exportIndex(args.indexfile, C_gap = int(args.countgap), SA_gap = int(args.suffixgap))
-	
+	args = parser.parse_args()
+	if args.genome:
+		BWI = BWIndex(genome=args.genome)
+	elif args.genomefile:
+		BWI = BWIndex(genomefile=args.genomefile)
+	BWI.exportIndex(args.indexfile, C_gap=args.countgap, SA_gap=args.suffixgap)

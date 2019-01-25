@@ -14,12 +14,12 @@ G gives the child nodes, NS, NE give the start and end locations of the node sub
 from graphviz import Digraph
 import time
 import re
+import argparse
 
 class BWMatch:
-	def __init__(self, T):
-		self.T = T
+	def __init__(self):
+		pass
 
-			
 	def loadIndex(self, filename):
 		f = open(filename)
 		self.BWT = f.readline().strip()
@@ -38,21 +38,18 @@ class BWMatch:
 			self.FO[a] = FO_items[i]
 		self.SA_gap = int(f.readline().strip())
 		self.C_gap = int(f.readline().strip())
-		
-			
 
-			
 	def lastToFirst(self, index):
 		letter = self.BWT[index]
 		return self.FO[letter] + self.reconstructCount(letter, index)
-		
+
 	def reconstructSuffixArray(self, index):
 		count = 0
 		while self.suffixArray.get(index) is None:
 			index = self.lastToFirst(index)
 			count += 1
 		return self.suffixArray[index] + count
-			
+
 	def FindMatches(self, Pattern):
 		top = 0
 		bottom = len(self.BWT) - 1
@@ -69,7 +66,27 @@ class BWMatch:
 					return []
 			else:
 				return [self.reconstructSuffixArray(x) for x in range(top, bottom + 1)]
-	
+
+	def MatchAllPatterns(self, patternfile, outputfile):
+		g = open(outputfile, "w")
+		with open(patternfile) as f:
+			for line in f:
+				line = line.strip()
+				if line[0] == '>':
+					readName = line
+				else:
+					readValue = line
+					if re.search('N', readValue):
+						continue
+					match = B.FindMatches(readValue)
+					if not match:
+						revcomp = reverseComplement(readValue)
+						match = B.FindMatches(revcomp)
+					if match:
+						g.write(readName + '\t')
+						result = '\t'.join(str(m) for m in match)
+						g.write(result + '\n')
+
 	def reconstructCount(self, letter, index):
 		# when C is the partial count array with gap 'gap', return the number of occurrences of letter strictly before index 'index'
 		loc = index - (index % self.C_gap)
@@ -80,98 +97,43 @@ class BWMatch:
 				count += 1 
 			loc += 1
 		return count
-		
-	
 
-	
 def reverseComplement(read):
 	rc = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
 	resp = ''
 	for i in read[::-1]:
 		resp += rc[i]
 	return resp
-	
 
-	
 if __name__ == '__main__':
-	# start_time = time.time()
-	# f = open("refgenome.txt")
-	# T = f.readline().strip() + '$'
-	# B = BWT(T)
-	# B.buildTree()
-	# B.exportIndex("ecoli_index.txt", C_gap = 5, SA_gap = 5)
-	# print("Exported index in", time.time() - start_time)
-	
-	# T = 'abracadabra$'
-	
-	# B = BWT(T)
-	# B.buildTree()
-	# B.exportIndex("magic_index_gap.txt", C_gap = 5, SA_gap = 5)
-	
-	# B = BWT(T)
-	# B.loadIndex("magic_index_gap.txt")
+	# B = BWMatch()
+	# B.loadIndex("test_index_new.txt")
 	# print(B.SA_gap, B.C_gap)
 	# print(B.BWT, B.suffixArray, B.C, B.FO)
-	# print(B.FindMatches('abra'))
+	# print(B.FindMatches('CCG'))
 	
-	# C_recon = {}
-	# C_gap = 5
-	# for k in B.C.keys():
-	# # for k in  ['$']:
-		# C_recon[k] = []
-		# for i in range(len(B.BWT)):
-			# C_recon[k].append(reconstructCount(B.BWT, B.suffixArray, B.C, B.FO, k, i, C_gap))
-	# f = open("C_recon.txt", "w")
-	# for x in sorted(C_recon.keys()):
-	# # for x in ['$']:
-		# f.write(','.join(str(C_recon[x][i]) for i in range(len(C_recon[x]))) + '\n')
-	# # print(BWT, suffixArray, C, FO)
 	
 	# start_time = time.time()
-	# T = 'dummy' # remove need for this later
-	# B = BWT(T)
-	# B.loadIndex("ecoli_index.txt")
+	# B = BWMatch()
+	# B.loadIndex("e_coli_index.txt")
 	# print("Loaded index in", time.time() - start_time)
-		
-		
 	# start_time = time.time()
-	# g = open("ecoli_matches.txt", "w")
-	# with open('e_coli_1000.fa') as f:
-		# for line in f:
-			# line = line.strip()
-			# if line[0] == '>':
-				# readName = line
-			# else:
-				# readValue = line
-				# if re.search('N', readValue):
-					# continue
-				# match = B.FindMatches(readValue)
-				# if not match:
-					# revcomp = reverseComplement(readValue)
-					# match = B.FindMatches(revcomp)
-				# if match:
-					# g.write(readName + '\t')
-					# result = '\t'.join(str(m) for m in match)
-					# g.write(result + '\n') 
+ 
 	# print("Complete read matching in", time.time() - start_time)
-
-			
+	parser = argparse.ArgumentParser()
+	parser.add_argument("indexfile", help="the file containing the index of the genome to which to align the pattern(s)")
+	pattern_source = parser.add_mutually_exclusive_group()
+	pattern_source.add_argument("--patternstring", help="a single pattern to be matched")
+	pattern_source.add_argument("--patternfile", help="the name of a file containing the patterns to be matched, in fasta format")
+	parser.add_argument("--outputfile", help="the file to which to write the match results")
+	args = parser.parse_args()
 	
-	
-	
-	# print("Loaded index after", time.time() - start_time)
-	# start_time = time.time()
-	# pattern = 'AGGTGATGGTATGCGCACCTTACGTGGGATCTCGGCGAAATTCTTTGCCGCGCTGGCCCGCGCCAATATC'
-	# print(FindMatches(suffixArray, C, FO, pattern))
-	# print("Completed matching after", time.time() - start_time)
-		
-	# B.drawGraph()
-	
-	T = 'dummy' 
-	Patterns = 'ACC CCG CAG'.split()
-
-	B = BWMatch(T)
-	B.loadIndex("test_index.txt")
-	for P in Patterns:
-		print(B.FindMatches(P))
-	
+	B = BWMatch()
+	B.loadIndex(args.indexfile)
+	if args.patternstring:
+		print(B.FindMatches(args.patternstring))
+	elif args.patternfile:
+		B.MatchAllPatterns(args.patternfile, args.outputfile)
+	else:
+		print("Please supply a pattern string or a pattern file")
+		sys.exit()
