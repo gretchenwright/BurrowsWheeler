@@ -18,14 +18,14 @@ class BWIndex:
             sys.exit()
         # The following attributes will be computed by self.build_tree().
         # Define here for transparency
-        self.G = {0: []}  # parent to child, int -> list
-        self.H = {}  # child to parent, int -> int
+        self.parent_to_child = {0: []}  # parent to child, int -> list
+        self.child_to_parent = {}  # child to parent, int -> int
         self.node_count = 1
         self.node_start = {}  # node start index
         self.node_end = {}  # node end index
         self.suffix_start = {}  # suffix start index
         self.build_tree()
-        self.BWT, self.suffixArray = self.Solve()
+        self.BWT, self.suffixArray = self.compute_transform()
         self.Count = {}
         self.letters = {i for i in self.BWT}
         self.alphabet = [i for i in self.letters]
@@ -59,83 +59,86 @@ class BWIndex:
         if self.suffix_array_gap is None:
             g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray)) + '\n')
         else:
-            g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray) if s % self.suffix_array_gap == 0) + '\n')
+            g.write('{0}\n'.format(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray)
+                                            if s % self.suffix_array_gap == 0)))
         g.write(','.join(str(x) for x in sorted(self.Count.keys())) + '\n')
         for x in sorted(self.Count.keys()):
             if self.count_gap is None:
                 g.write(','.join(str(self.Count[x][i]) for i in range(len(self.Count[x]))) + '\n')
             else:
-                g.write(','.join(str(self.Count[x][i]) for i in range(len(self.Count[x])) if i % self.count_gap == 0) + '\n')
+                g.write('{0}\n'.format(
+                    ','.join(str(self.Count[x][i]) for i in range(len(self.Count[x])) if i % self.count_gap == 0)))
         g.write(','.join(str(self.first_occurrence[x]) for x in sorted(self.first_occurrence.keys())) + '\n')
         g.write(str(self.suffix_array_gap) + '\n')
         g.write(str(self.count_gap) + '\n')
 
-    def Solve(self):
-        S = [('', 0)]
+    def compute_transform(self):
+        stack = [('', 0)]
         transform = ''
-        suffixArray = []
-        while S:
-            node = S.pop()
-            nodeIx = node[1]
-            if self.G.get(nodeIx) is not None:
-                if self.G[nodeIx]:
-                    children = [(self.Text[self.node_start[child]], child) for child in self.G[nodeIx]]
+        suffix_array = []
+        while stack:
+            node = stack.pop()
+            node_index = node[1]
+            if self.parent_to_child.get(node_index) is not None:
+                if self.parent_to_child[node_index]:
+                    children = [(self.Text[self.node_start[child]], child) for child in
+                                self.parent_to_child[node_index]]
                     children.sort(reverse=True)
-                    S += children
+                    stack += children
             else:
-                transform += self.Text[self.suffix_start[nodeIx] - 1]
-                suffixArray.append(self.suffix_start[nodeIx])
-        return transform, suffixArray
+                transform += self.Text[self.suffix_start[node_index] - 1]
+                suffix_array.append(self.suffix_start[node_index])
+        return transform, suffix_array
 
-
-    def drawGraph(self, maxLabelLength=None, outFile=None):
-        D = Digraph()
+    def draw_graph(self, max_label_length=None, out_file=None):
+        digraph = Digraph()
         self.node_start[0] = 0
         self.node_end[0] = -1
         for i in range(self.node_count):
             label = self.Text[self.node_start[i]:self.node_end[i] + 1]
-            if maxLabelLength:
-                label = label[:maxLabelLength]
-            D.node(str(i), label)
-        for tail in self.G:
-            for head in self.G[tail]:
-                D.edge(str(tail), str(head))
-        D.render(outFile, view=True)
+            if max_label_length:
+                label = label[:max_label_length]
+            digraph.node(str(i), label)
+        for tail in self.parent_to_child:
+            for head in self.parent_to_child[tail]:
+                digraph.edge(str(tail), str(head))
+        digraph.render(out_file, view=True)
 
     def report(self):
-        print(self.G, self.H, self.node_start, self.node_end, self.suffix_start, self.BWT, self.suffixArray, self.first_occurrence, self.Count)
+        print(self.parent_to_child, self.child_to_parent, self.node_start, self.node_end, self.suffix_start, self.BWT,
+              self.suffixArray, self.first_occurrence, self.Count)
 
-    def appendNode(self, parent, nodeStringStart, suffixStart):
-        newNode = self.node_count
-        self.G[parent] = self.G.get(parent, []) + [newNode]
-        self.H[newNode] = parent
-        self.node_start[newNode] = nodeStringStart
-        self.node_end[newNode] = len(self.Text) - 1
-        self.suffix_start[newNode] = suffixStart
+    def append_node(self, parent, node_string_start, suffix_start):
+        new_node = self.node_count
+        self.parent_to_child[parent] = self.parent_to_child.get(parent, []) + [new_node]
+        self.child_to_parent[new_node] = parent
+        self.node_start[new_node] = node_string_start
+        self.node_end[new_node] = len(self.Text) - 1
+        self.suffix_start[new_node] = suffix_start
         self.node_count += 1
 
-    def splitNode(self, node, index):
+    def split_node(self, node, index):
         # introduce a new node whose parent is the original parent of node, make it the new parent of node
-        newNode = self.node_count
-        parent = self.H[node]
-        self.G[newNode] = [node]
-        self.G[parent].remove(node)
-        self.G[parent] = self.G.get(parent, []) + [newNode]
-        self.H[newNode] = parent
-        self.H[node] = newNode
-        self.node_start[newNode] = self.node_start[node]
-        self.node_end[newNode] = index - 1
+        new_node = self.node_count
+        parent = self.child_to_parent[node]
+        self.parent_to_child[new_node] = [node]
+        self.parent_to_child[parent].remove(node)
+        self.parent_to_child[parent] = self.parent_to_child.get(parent, []) + [new_node]
+        self.child_to_parent[new_node] = parent
+        self.child_to_parent[node] = new_node
+        self.node_start[new_node] = self.node_start[node]
+        self.node_end[new_node] = index - 1
         self.node_start[node] = index
         self.node_count += 1
-        return newNode
+        return new_node
 
-    def findMatchingChild(self, node, loc):
-        for child in self.G[node]:
+    def find_matching_child(self, node, loc):
+        for child in self.parent_to_child[node]:
             if self.Text[loc] == self.Text[self.node_start[child]]:
                 return child
         return -1
 
-    def firstMismatch(self, node, ix):
+    def first_mismatch(self, node, ix):
         offset = 1
         while True:
             if ix + offset >= len(self.Text):
@@ -151,25 +154,24 @@ class BWIndex:
         look for a node that matches the start of the current substring
         if none found, create a new node and set its string to the current substring and SS to the initial index
         if one is found, look for a mismatch within the string
+        if no mismatch, advance current_index by the length of the node string and iterate
         if a mismatch is found, split the target node and append the remainder of the substring
-        if no mismatch, advance curIx by the length of the node string and iterate
         """
         node = 0
-        curIx = ix
+        current_index = ix
         while True:
-            nextNode = self.findMatchingChild(node, curIx)
-            if nextNode == -1:
-                self.appendNode(node, curIx, ix)
+            next_node = self.find_matching_child(node, current_index)
+            if next_node == -1:
+                self.append_node(node, current_index, ix)
                 break
-            node = nextNode
-            splitLoc = self.firstMismatch(node, curIx)
-            if splitLoc == -1:
-                curIx += self.node_end[node] - self.node_start[node] + 1
-                continue
-            newNode = self.splitNode(node, splitLoc)
-            self.appendNode(newNode, splitLoc + (curIx - self.node_start[newNode]), ix)
-            c = self.node_count - 1
-            break
+            node = next_node
+            split_loc = self.first_mismatch(node, current_index)
+            if split_loc != -1:
+                new_node = self.split_node(node, split_loc)
+                self.append_node(new_node, split_loc + (current_index - self.node_start[new_node]), ix)
+                break
+            else:
+                current_index += self.node_end[node] - self.node_start[node] + 1
 
     def compute_count_array(self):
         for i in self.alphabet:
@@ -181,13 +183,13 @@ class BWIndex:
                     self.Count[k][j] = self.Count[k][j - 1]
         return self.Count
 
-    def FindCount(self, Pattern):
+    def find_count(self, pattern):
         top = 0
         bottom = len(self.BWT) - 1
         while top <= bottom:
-            if len(Pattern) > 0:
-                symbol = Pattern[-1]
-                Pattern = Pattern[:-1]
+            if len(pattern) > 0:
+                symbol = pattern[-1]
+                pattern = pattern[:-1]
                 if self.Count[symbol][bottom + 1] - self.Count[symbol][top] > 0:
                     top = self.first_occurrence[symbol] + self.Count[symbol][top]
                     bottom = self.first_occurrence[symbol] + self.Count[symbol][bottom + 1] - 1
