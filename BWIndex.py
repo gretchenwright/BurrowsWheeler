@@ -16,16 +16,24 @@ class BWIndex:
 		if self.Text[-1] != '$':
 			print("Genome must be terminated by $")
 			sys.exit()
+		# The following attributes will be computed by self.build_tree().
+		# Define here for transparency
+		self.G = {0: []}  # parent to child, int -> list
+		self.H = {}  # child to parent, int -> int
+		self.node_count = 1
+		self.node_start = {}  # node start index
+		self.node_end = {}  # node end index
+		self.suffix_start = {}  # suffix start index
 		self.build_tree()
-		self.Solve()
-		self.Count = dict()
+		self.BWT, self.suffixArray = self.Solve()
+		self.Count = {}
 		self.letters = {i for i in self.BWT}
 		self.alphabet = [i for i in self.letters]
 		self.alphabet.sort()
 		self.compute_count_array()
 
-		self.first_occurrence = dict()
-		freq = dict()
+		self.first_occurrence = {}
+		freq = {}
 		for i in self.BWT:
 			freq[i] = freq.get(i, 0) + 1
 		index = 0
@@ -37,12 +45,7 @@ class BWIndex:
 			self.first_occurrence[letter] = index
 
 	def build_tree(self):
-		self.G = {0: []}  # parent to child, int -> list
-		self.H = dict()  # child to parent, int -> int
-		self.node_count = 1
-		self.node_start = dict()  # node start index
-		self.node_end = dict()  # node end index
-		self.suffix_start = dict()  # suffix start index
+
 		for ix in range(len(self.Text)):
 			# print(ix)
 			self.thread_suffix(ix)
@@ -81,8 +84,8 @@ class BWIndex:
 			else:
 				transform += self.Text[self.suffix_start[nodeIx] - 1]
 				suffixArray.append(self.suffix_start[nodeIx])
-		self.BWT = transform
-		self.suffixArray = suffixArray
+		return transform, suffixArray
+
 
 	def drawGraph(self, maxLabelLength=None, outFile=None):
 		D = Digraph()
@@ -143,13 +146,13 @@ class BWIndex:
 			offset += 1
 
 	def thread_suffix(self, ix):
-		'''
+		"""
 		look for a node that matches the start of the current substring
 		if none found, create a new node and set its string to the current substring and SS to the initial index
 		if one is found, look for a mismatch within the string
 		if a mismatch is found, split the target node and append the remainder of the substring
 		if no mismatch, advance curIx by the length of the node string and iterate
-		'''
+		"""
 		node = 0
 		curIx = ix
 		while True:
@@ -175,7 +178,7 @@ class BWIndex:
 			for k in self.alphabet:
 				if k != self.BWT[j - 1]:
 					self.Count[k][j] = self.Count[k][j - 1]
-		return (self.Count)
+		return self.Count
 
 	def FindCount(self, Pattern):
 		top = 0
@@ -234,8 +237,8 @@ if __name__ == '__main__':
 	parser.add_argument('indexfile', help='File to write the index to')
 
 	args = parser.parse_args()
-	if args.genome:
-		BWI = BWIndex(genome=args.genome)
-	elif args.genomefile:
-		BWI = BWIndex(genomefile=args.genomefile)
-	BWI.export_index(args.indexfile, count_array_gap=args.countgap, suffix_array_gap=args.suffixgap)
+	# if args.genome:
+	# 	BWI = BWIndex(genome=args.genome)
+	# elif args.genomefile:
+	# 	BWI = BWIndex(genomefile=args.genomefile)
+	# BWI.export_index(args.indexfile, count_array_gap=args.countgap, suffix_array_gap=args.suffixgap)
