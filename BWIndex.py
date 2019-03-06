@@ -54,23 +54,23 @@ class BWIndex:
             self.thread_suffix(ix)
 
     def export_index(self, filename):
-        g = open(filename, 'w')
-        g.write(self.BWT + '\n')
-        if self.suffix_array_gap is None:
-            g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray)) + '\n')
-        else:
-            g.write('{0}\n'.format(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray)
-                                            if s % self.suffix_array_gap == 0)))
-        g.write(','.join(str(x) for x in sorted(self.Count.keys())) + '\n')
-        for x in sorted(self.Count.keys()):
-            if self.count_gap is None:
-                g.write(','.join(str(self.Count[x][i]) for i in range(len(self.Count[x]))) + '\n')
+        with open(filename, 'w') as g:
+            g.write(self.BWT + '\n')
+            if self.suffix_array_gap is None:
+                g.write(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray)) + '\n')
             else:
-                g.write('{0}\n'.format(
-                    ','.join(str(self.Count[x][i]) for i in range(len(self.Count[x])) if i % self.count_gap == 0)))
-        g.write(','.join(str(self.first_occurrence[x]) for x in sorted(self.first_occurrence.keys())) + '\n')
-        g.write(str(self.suffix_array_gap) + '\n')
-        g.write(str(self.count_gap) + '\n')
+                g.write('{0}\n'.format(','.join(str(i) + ';' + str(s) for i, s in enumerate(self.suffixArray)
+                                                if s % self.suffix_array_gap == 0)))
+            g.write(','.join(str(x) for x in sorted(self.Count.keys())) + '\n')
+            for x in sorted(self.Count.keys()):
+                if self.count_gap is None:
+                    g.write(','.join(str(self.Count[x][i]) for i in range(len(self.Count[x]))) + '\n')
+                else:
+                    g.write('{0}\n'.format(
+                        ','.join(str(self.Count[x][i]) for i in range(len(self.Count[x])) if i % self.count_gap == 0)))
+            g.write(','.join(str(self.first_occurrence[x]) for x in sorted(self.first_occurrence.keys())) + '\n')
+            g.write(str(self.suffix_array_gap) + '\n')
+            g.write(str(self.count_gap) + '\n')
 
     def compute_transform(self):
         stack = [('', 0)]
