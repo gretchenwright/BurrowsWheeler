@@ -15,6 +15,7 @@ indices
 
 import argparse
 import re
+import sys
 
 
 class BWMatch:
@@ -96,6 +97,17 @@ class BWMatch:
                 count += 1
             loc += 1
         return count
+        
+def parse_command_line_arguments(arguments):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("indexfile",
+                        help="the file containing the index of the genome to which to align the pattern(s)")
+    pattern_source = parser.add_mutually_exclusive_group()
+    pattern_source.add_argument("--patternstring", help="a single pattern to be matched")
+    pattern_source.add_argument("--patternfile",
+                                help="the name of a file containing the patterns to be matched, in fasta format")
+    parser.add_argument("--outputfile", help="the file to which to write the match results")
+    return parser.parse_args()
 
 
 def reverse_complement(read):
@@ -107,28 +119,8 @@ def reverse_complement(read):
 
 
 if __name__ == '__main__':
-    # B = BWMatch()
-    # B.loadIndex("test_index_new.txt")
-    # print(B.SA_gap, B.C_gap)
-    # print(B.BWT, B.suffixArray, B.C, B.FO)
-    # print(B.FindMatches('CCG'))
 
-    # start_time = time.time()
-    # B = BWMatch()
-    # B.loadIndex("e_coli_index.txt")
-    # print("Loaded index in", time.time() - start_time)
-    # start_time = time.time()
-
-    # print("Complete read matching in", time.time() - start_time)
-    parser = argparse.ArgumentParser()
-    parser.add_argument("indexfile",
-                        help="the file containing the index of the genome to which to align the pattern(s)")
-    pattern_source = parser.add_mutually_exclusive_group()
-    pattern_source.add_argument("--patternstring", help="a single pattern to be matched")
-    pattern_source.add_argument("--patternfile",
-                                help="the name of a file containing the patterns to be matched, in fasta format")
-    parser.add_argument("--outputfile", help="the file to which to write the match results")
-    args = parser.parse_args()
+    args = parse_command_line_arguments(sys.argv)
 
     B = BWMatch(args.indexfile)
     if args.patternstring:
