@@ -29,8 +29,8 @@ class BWIndex:
         self.build_tree()
         self.BWT, self.suffixArray = self.compute_transform()
         self.Count = {}
-        self.letters = {i for i in self.BWT}
-        self.alphabet = [i for i in self.letters]
+        self.letters = set(self.BWT)
+        self.alphabet = list(self.letters)
         self.alphabet.sort()
         self.compute_count_array()
 
@@ -49,7 +49,6 @@ class BWIndex:
         self.export_index(self.index_file)
 
     def build_tree(self):
-
         for ix in range(len(self.Text)):
             self.thread_suffix(ix)
 

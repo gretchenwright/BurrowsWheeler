@@ -27,7 +27,7 @@ class BWMatch:
             for s in suffix_array_list:
                 k, v = s.split(';')
                 self.suffix_array[int(k)] = int(v)
-            alphabet = [x for x in f.readline().strip().split(',')]
+            alphabet = list(f.readline().strip().split(','))
             self.C = {}
             for a in alphabet:
                 self.C[a] = [int(x) for x in f.readline().strip().split(',')]
@@ -64,7 +64,6 @@ class BWMatch:
                 else:
                     return []
             else:
-                # return [self.reconstruct_suffix_array(x) for x in range(top, bottom + 1)]
                 return sorted([self.reconstruct_suffix_array(x) for x in range(top, bottom + 1)])
 
     def match_all_patterns(self, patternfile, outputfile):
@@ -79,7 +78,7 @@ class BWMatch:
                 if re.search('N', read_value):
                     continue
                 match = self.find_matches(read_value)
-                # This seems like logic error: there could be both forward and reverse matches
+                # TODO: report both forward and reverse matches, and add flag to specify directions
                 if not match:
                     revcomp = reverse_complement(read_value)
                     match = self.find_matches(revcomp)
@@ -99,7 +98,8 @@ class BWMatch:
                 count += 1
             loc += 1
         return count
-        
+
+
 def parse_command_line_arguments(arguments):
     print(arguments)
     parser = argparse.ArgumentParser()
