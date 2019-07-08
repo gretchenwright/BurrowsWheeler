@@ -4,6 +4,7 @@ import filecmp
 from BWMatch import BWMatch
 from BWMatch import parse_command_line_arguments
 
+
 class TestBWMatch(unittest.TestCase):
     """
     see https://stackoverflow.com/questions/3942820/how-to-do-unit-testing-of-functions-writing-files-using-python-unittest/3943697#3943697
