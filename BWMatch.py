@@ -64,7 +64,8 @@ class BWMatch:
                 else:
                     return []
             else:
-                return [self.reconstruct_suffix_array(x) for x in range(top, bottom + 1)]
+                # return [self.reconstruct_suffix_array(x) for x in range(top, bottom + 1)]
+                return sorted([self.reconstruct_suffix_array(x) for x in range(top, bottom + 1)])
 
     def match_all_patterns(self, patternfile, outputfile):
         with open(patternfile) as f, open(outputfile, "w") as g:
@@ -78,6 +79,7 @@ class BWMatch:
                 if re.search('N', read_value):
                     continue
                 match = self.find_matches(read_value)
+                # This seems like logic error: there could be both forward and reverse matches
                 if not match:
                     revcomp = reverse_complement(read_value)
                     match = self.find_matches(revcomp)
@@ -99,6 +101,7 @@ class BWMatch:
         return count
         
 def parse_command_line_arguments(arguments):
+    print(arguments)
     parser = argparse.ArgumentParser()
     parser.add_argument("indexfile",
                         help="the file containing the index of the genome to which to align the pattern(s)")
@@ -120,7 +123,7 @@ def reverse_complement(read):
 
 if __name__ == '__main__':
 
-    args = parse_command_line_arguments(sys.argv)
+    args = parse_command_line_arguments(sys.argv[1:])
 
     B = BWMatch(args.indexfile)
     if args.patternstring:

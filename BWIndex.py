@@ -1,21 +1,23 @@
 import argparse
 import sys
 
-from graphviz import Digraph
+
+# from graphviz import Digraph
 
 
 class BWIndex:
-    def __init__(self, args):
-        if args.genome is not None:
-            self.Text = args.genome
-        elif args.genomefile is not None:
-            self.load_genome_from_file(args.genomefile)
+    def __init__(self, indexfile, genomefile='', genome='', countgap=100, suffixgap=100):
+        if genome:
+            self.Text = genome
         else:
-            print("You must supply a genome file or a genome string.")
-            sys.exit()
+            self.load_genome_from_file(genomefile)
+
         if self.Text[-1] != '$':
             print("Genome must be terminated by $")
             sys.exit()
+        self.suffix_array_gap = suffixgap
+        self.count_gap = countgap
+        self.index_file = indexfile
         # The following attributes will be computed by self.build_tree().
         # Define here for transparency
         self.parent_to_child = {0: []}  # parent to child, int -> list
@@ -43,14 +45,12 @@ class BWIndex:
             letter = self.alphabet[j]
             index += freq[prev_letter]
             self.first_occurrence[letter] = index
-        self.suffix_array_gap = args.suffixgap
-        self.count_gap = args.countgap
-        self.export_index(args.indexfile)
+
+        self.export_index(self.index_file)
 
     def build_tree(self):
 
         for ix in range(len(self.Text)):
-            # print(ix)
             self.thread_suffix(ix)
 
     def export_index(self, filename):
@@ -211,25 +211,6 @@ class BWIndex:
 
 
 if __name__ == '__main__':
-    # Text = 'GGCGCCGCTAGTCACACACGCCGTA$'
-    # Text = 'GGCGCCGCTAGTCACACACGCCGTA'
-    # BWI = BWIndex(Text)
-    # BWI = BWIndex()
-    # genomefile = 'genome.txt'
-    # genomefile = 'refgenome.txt'
-    # BWI = BWIndex(genomefile=genomefile)
-    # BWI.report()
-    # BWI.drawGraph()
-    # BWI.exportIndex("e_coli_index.txt", SA_gap=5, C_gap=5)
-    # BWI.exportIndex("test_index_new.txt", SA_gap=5, C_gap=5)
-
-    # start_time = time.time()
-    # f = open("refgenome.txt")
-    # T = f.readline().strip() + '$'
-    # B = BWT(T)
-    # B.buildTree()
-    # B.exportIndex("ecoli_index.txt", C_gap = 5, SA_gap = 5)
-    # print("Exported index in", time.time() - start_time)
 
     parser = argparse.ArgumentParser()
     genome_source = parser.add_mutually_exclusive_group()
@@ -240,5 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('indexfile', help='File to write the index to')
 
     args = parser.parse_args()
-
-    BWIndex(args)
+    if args.genomefile:
+        BWIndex(args.indexfile, genomefile=args.genomefile, countgap=args.countgap, suffixgap=args.suffixgap, )
+    else:
+        BWIndex(args.indexfile, genome=args.genome, countgap=args.countgap, suffixgap=args.suffixgap, )
