@@ -20,10 +20,12 @@ class TestBWMatch(unittest.TestCase):
         self.assertEqual(B.find_matches('CAT'), [3, 14, 17])
         
 # class TestParser(unittest.TestCase):
-    # # TODO find out why this doesn't work
-    # def test_filename_argument(self):
-        # args = parse_command_line_arguments('test_bwmatch.py --patternfile e_coli_1000.fa --outputfile e_coli_matches.txt e_coli_index.txt'.split())
-        # self.assertEqual([args.patternfile, args.outputfile, args.indexfile], ['e_coli_1000.fa', 'e_coli_matches.txt', 'e_coli_index.txt'])
+#     # TODO find out why this doesn't work
+#     def test_filename_argument(self):
+#         cmd = 'test_bwmatch.py --patternfile e_coli_1000.fa --outputfile e_coli_matches.txt e_coli_index.txt'
+#         args = parse_command_line_arguments(cmd.split()[1:])
+#         self.assertEqual([args.patternfile, args.outputfile, args.indexfile],
+#                          ['e_coli_1000.fa', 'e_coli_matches.txt', 'e_coli_index.txt'])
 
 
 if __name__ == '__main__':
