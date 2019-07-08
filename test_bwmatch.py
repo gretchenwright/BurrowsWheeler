@@ -16,8 +16,8 @@ class TestBWMatch(unittest.TestCase):
         self.assertTrue(filecmp.cmp('ecoli_matches.txt', 'ecoli_matches_baseline.txt'))
         
     def test_string_argument(self):
-        B = BWMatch('test_index_new.txt')
-        self.assertEqual(B.find_matches('CAT'), [14, 3, 17])
+        B = BWMatch('small_index_from_string.txt')
+        self.assertEqual(B.find_matches('CAT'), [3, 14, 17])
         
 # class TestParser(unittest.TestCase):
     # # TODO find out why this doesn't work
