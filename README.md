@@ -13,13 +13,13 @@ usage: BWIndex.py [-h] [--genomefile GENOMEFILE | --genome GENOME]
                   [--countgap COUNTGAP] [--suffixgap SUFFIXGAP]
                   indexfile
 
-Create an index from a string supplied on the command line:\ 
+Create an index from a string supplied on the command line:<br/>
 py BWIndex.py --genome ACGCGCTAA$ test_index.txt --countgap 5 --suffixgap 5
 
-Create an index from a genome file
+Create an index from a genome file:<br/>
 py BWIndex.py --genomefile genome.txt test_index.txt --countgap 5 --suffixgap 5
 
-Create an index from a genome file with gaps of 100
+Create an index from a genome file with gaps of 100:<br/>
 py BWIndex.py --genomefile refgenome.txt --countgap 100 --suffixgap 100 e_coli_index_100.txt
 
 Command line options and examples for pattern matching:
@@ -30,7 +30,7 @@ usage: BWMatch.py [-h]
                   [--outputfile OUTPUTFILE]
                   indexfile
 
-Match a single string to the genome corresponding to the index file:\ 
+Match a single string to the genome corresponding to the index file::<br/>
 py BWMatch.py --patternstring GCG test_index.txt
 
 Match the reads from an input file to the given index file, and write the result to the given output file:<br/>
