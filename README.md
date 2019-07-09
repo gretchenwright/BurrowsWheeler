@@ -33,5 +33,5 @@ usage: BWMatch.py [-h]
 Match a single string to the genome corresponding to the index file:\ 
 py BWMatch.py --patternstring GCG test_index.txt
 
-Match the reads from an input file to the given index file, and write the result to the given output file:\ 
+Match the reads from an input file to the given index file, and write the result to the given output file:<br/>
 py BWMatch.py --patternfile e_coli_1000.fa --outputfile e_coli_matches.txt e_coli_index.txt
