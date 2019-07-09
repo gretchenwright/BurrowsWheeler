@@ -13,7 +13,7 @@ usage: BWIndex.py [-h] [--genomefile GENOMEFILE | --genome GENOME]
                   [--countgap COUNTGAP] [--suffixgap SUFFIXGAP]
                   indexfile
 
-Create an index from a string supplied on the command line
+Create an index from a string supplied on the command line:\ 
 py BWIndex.py --genome ACGCGCTAA$ test_index.txt --countgap 5 --suffixgap 5
 
 Create an index from a genome file
@@ -30,8 +30,8 @@ usage: BWMatch.py [-h]
                   [--outputfile OUTPUTFILE]
                   indexfile
 
-Match a single string to the genome corresponding to the index file
+Match a single string to the genome corresponding to the index file:\ 
 py BWMatch.py --patternstring GCG test_index.txt
 
-Match the reads from an input file to the given index file, and write the result to the given output file
+Match the reads from an input file to the given index file, and write the result to the given output file:\ 
 py BWMatch.py --patternfile e_coli_1000.fa --outputfile e_coli_matches.txt e_coli_index.txt
